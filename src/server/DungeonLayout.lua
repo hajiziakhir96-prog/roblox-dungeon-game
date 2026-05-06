@@ -1,19 +1,45 @@
--- DungeonLayout V2 Script (IMPROVED)
+-- DungeonLayout V3 Script (GREEN LOBBY + TELEPORT)
 -- Letak: ServerScriptService
--- Berfungsi: Create detailed cave dungeon dengan 20+ monster spawn points dan torch lighting
+-- Berfungsi: Green hill lobby dengan teleport ke dungeon
 
 local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
 
--- ===== DUNGEON CONFIGURATION V2 =====
+-- ===== DUNGEON CONFIGURATION V3 =====
 local DUNGEON_CONFIG = {
-    -- Lobby settings
+    -- GREEN LOBBY (outdoor hill style)
     lobby = {
-        floorSize = Vector3.new(60, 1, 60),
-        floorPosition = Vector3.new(0, 0, 0),
-        floorColor = Color3.fromRGB(150, 150, 150),
-        entranceSize = Vector3.new(10, 8, 2),
-        entrancePosition = Vector3.new(0, 4, 35),
-        entranceColor = Color3.fromRGB(40, 40, 40),
+        -- Main green hill floor
+        floorSize = Vector3.new(100, 3, 100),
+        floorPosition = Vector3.new(0, -1, 0),
+        floorColor = Color3.fromRGB(34, 139, 34),  -- Forest green
+        
+        -- Decorative green walls (hill slopes)
+        hillWalls = {
+            {size = Vector3.new(100, 15, 5), position = Vector3.new(0, 5, -50), color = Color3.fromRGB(34, 139, 34)},  -- Front
+            {size = Vector3.new(100, 15, 5), position = Vector3.new(0, 5, 50), color = Color3.fromRGB(34, 139, 34)},   -- Back
+            {size = Vector3.new(5, 15, 100), position = Vector3.new(-50, 5, 0), color = Color3.fromRGB(34, 139, 34)}, -- Left
+            {size = Vector3.new(5, 15, 100), position = Vector3.new(50, 5, 0), color = Color3.fromRGB(34, 139, 34)},  -- Right
+        },
+        
+        -- Teleport pad (CENTER)
+        teleportPad = {
+            size = Vector3.new(20, 0.5, 20),
+            position = Vector3.new(0, 2, 0),
+            color = Color3.fromRGB(0, 255, 255),  -- Cyan glow
+            destinationDungeon = Vector3.new(0, 2, 90),  -- Dungeon floor entrance
+        },
+        
+        -- Decorative trees (simple cubes for now)
+        trees = {
+            {position = Vector3.new(-30, 3, -30), size = Vector3.new(3, 8, 3), color = Color3.fromRGB(139, 69, 19)},  -- Brown trunk
+            {position = Vector3.new(30, 3, -30), size = Vector3.new(3, 8, 3), color = Color3.fromRGB(139, 69, 19)},
+            {position = Vector3.new(-30, 3, 30), size = Vector3.new(3, 8, 3), color = Color3.fromRGB(139, 69, 19)},
+            {position = Vector3.new(30, 3, 30), size = Vector3.new(3, 8, 3), color = Color3.fromRGB(139, 69, 19)},
+        },
+        
+        -- Sky dome background (visual only)
+        skyColor = Color3.fromRGB(135, 206, 235),  -- Sky blue
     },
     
     -- Cave dungeon settings
@@ -39,7 +65,7 @@ local DUNGEON_CONFIG = {
         {size = Vector3.new(2, 30, 200), position = Vector3.new(100, 15, 150), color = Color3.fromRGB(55, 50, 45)},
         {size = Vector3.new(2, 30, 200), position = Vector3.new(95, 15, 150), color = Color3.fromRGB(50, 45, 40)},
         
-        -- Front wall
+        -- Front wall (entrance area)
         {size = Vector3.new(200, 30, 2), position = Vector3.new(0, 15, 50), color = Color3.fromRGB(55, 50, 45)},
         
         -- Back wall (near boss)
@@ -99,6 +125,7 @@ local DUNGEON_CONFIG = {
     
     -- Torch positions (authentic cave lighting)
     torches = {
+        -- Cave torches
         {position = Vector3.new(-80, 10, 70)},
         {position = Vector3.new(80, 10, 70)},
         {position = Vector3.new(-80, 10, 120)},
@@ -123,7 +150,7 @@ local DUNGEON_CONFIG = {
     
     -- Player spawn
     playerSpawn = {
-        position = Vector3.new(0, 1.5, -10),
+        position = Vector3.new(0, 2, -20),
     },
 }
 
@@ -139,22 +166,22 @@ local function createPart(name, size, position, color, canCollide, transparency,
     part.Transparency = transparency or 0
     part.TopSurface = Enum.SurfaceType.Smooth
     part.BottomSurface = Enum.SurfaceType.Smooth
-    part.Anchored = true  -- IMPORTANT: Prevent falling
+    part.Anchored = true
     part.Material = material or Enum.Material.Brick
     part.Parent = Workspace
     
     return part
 end
 
--- ===== CREATE LOBBY =====
+-- ===== CREATE GREEN LOBBY =====
 local function createLobby()
-    print("[DungeonLayout] Creating Lobby...")
+    print("[DungeonLayout] Creating Green Lobby...")
     
     local lobby = Instance.new("Folder")
     lobby.Name = "Lobby"
     lobby.Parent = Workspace
     
-    -- Lobby floor
+    -- Green hill floor
     local lobbyFloor = createPart(
         "LobbyFloor",
         DUNGEON_CONFIG.lobby.floorSize,
@@ -162,47 +189,92 @@ local function createLobby()
         DUNGEON_CONFIG.lobby.floorColor,
         true,
         0,
-        Enum.Material.Brick
+        Enum.Material.Grass
     )
     lobbyFloor.Parent = lobby
     
-    -- Lobby walls (simple)
-    local lobbyWalls = {
-        {size = Vector3.new(60, 15, 2), position = Vector3.new(0, 7.5, -30), color = Color3.fromRGB(100, 100, 100)},
-        {size = Vector3.new(60, 15, 2), position = Vector3.new(0, 7.5, 30), color = Color3.fromRGB(100, 100, 100)},
-        {size = Vector3.new(2, 15, 60), position = Vector3.new(-30, 7.5, 0), color = Color3.fromRGB(100, 100, 100)},
-        {size = Vector3.new(2, 15, 60), position = Vector3.new(30, 7.5, 0), color = Color3.fromRGB(100, 100, 100)},
-    }
-    
-    for i, wallConfig in ipairs(lobbyWalls) do
+    -- Green hill walls
+    for i, wallConfig in ipairs(DUNGEON_CONFIG.lobby.hillWalls) do
         local wall = createPart(
-            "LobbyWall" .. i,
+            "HillWall" .. i,
             wallConfig.size,
             wallConfig.position,
             wallConfig.color,
-            true
+            true,
+            0,
+            Enum.Material.Grass
         )
         wall.Parent = lobby
     end
     
-    -- Dungeon entrance
-    local entrance = createPart(
-        "DungeonEntrance",
-        DUNGEON_CONFIG.lobby.entranceSize,
-        DUNGEON_CONFIG.lobby.entrancePosition,
-        DUNGEON_CONFIG.lobby.entranceColor,
-        true,
-        0,
-        Enum.Material.SmoothPlastic
+    -- Decorative trees (trunks)
+    for i, treeConfig in ipairs(DUNGEON_CONFIG.lobby.trees) do
+        local trunk = createPart(
+            "Tree" .. i .. "_Trunk",
+            treeConfig.size,
+            treeConfig.position,
+            treeConfig.color,
+            true,
+            0,
+            Enum.Material.Wood
+        )
+        trunk.Parent = lobby
+        
+        -- Tree foliage (sphere-like)
+        local foliage = createPart(
+            "Tree" .. i .. "_Foliage",
+            Vector3.new(8, 8, 8),
+            treeConfig.position + Vector3.new(0, 8, 0),
+            Color3.fromRGB(34, 139, 34),
+            false,
+            0,
+            Enum.Material.Grass
+        )
+        foliage.Parent = lobby
+    end
+    
+    -- Teleport pad (GLOWING CENTER)
+    local teleportPad = createPart(
+        "TeleportPad",
+        DUNGEON_CONFIG.lobby.teleportPad.size,
+        DUNGEON_CONFIG.lobby.teleportPad.position,
+        DUNGEON_CONFIG.lobby.teleportPad.color,
+        false,
+        0.2,
+        Enum.Material.Neon
     )
-    entrance.Parent = lobby
+    teleportPad.Parent = lobby
+    teleportPad.CanQuery = false
+    
+    -- Add PointLight to teleport pad
+    local padLight = Instance.new("PointLight")
+    padLight.Brightness = 3
+    padLight.Range = 30
+    padLight.Color = Color3.fromRGB(0, 255, 255)
+    padLight.Parent = teleportPad
+    
+    -- Teleport pad touch detection
+    local touchConnection
+    touchConnection = teleportPad.Touched:Connect(function(hit)
+        local character = hit.Parent
+        local player = Players:GetPlayerFromCharacter(character)
+        
+        if player and character:FindFirstChildOfClass("Humanoid") then
+            -- Teleport player to dungeon
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            if humanoidRootPart then
+                humanoidRootPart.CFrame = CFrame.new(DUNGEON_CONFIG.lobby.teleportPad.destinationDungeon + Vector3.new(0, 3, 0))
+                print("[DungeonLayout] " .. player.Name .. " teleported to Dungeon!")
+            end
+        end
+    end)
     
     -- Player spawn location
     local spawnLocation = Instance.new("SpawnLocation")
     spawnLocation.Name = "PlayerSpawnLocation"
-    spawnLocation.Size = Vector3.new(8, 1, 8)
+    spawnLocation.Size = Vector3.new(10, 1, 10)
     spawnLocation.Position = DUNGEON_CONFIG.playerSpawn.position
-    spawnLocation.Color = Color3.fromRGB(0, 200, 0)
+    spawnLocation.Color = Color3.fromRGB(0, 255, 0)
     spawnLocation.CanCollide = true
     spawnLocation.TopSurface = Enum.SurfaceType.Smooth
     spawnLocation.BottomSurface = Enum.SurfaceType.Smooth
@@ -210,7 +282,7 @@ local function createLobby()
     spawnLocation.Duration = 0
     spawnLocation.Parent = lobby
     
-    print("[DungeonLayout] ✓ Lobby created!")
+    print("[DungeonLayout] ✓ Green Lobby created with Teleport Pad!")
     return lobby
 end
 
@@ -291,9 +363,9 @@ local function createMonsterSpawnPoints()
             spawnConfig.name,
             Vector3.new(6, 0.3, 6),
             spawnConfig.position,
-            Color3.fromRGB(100, 180, 255),  -- Light blue
+            Color3.fromRGB(100, 180, 255),
             false,
-            0.5,  -- Transparency
+            0.5,
             Enum.Material.Neon
         )
         spawnPoint.Parent = spawnPointsFolder
@@ -309,7 +381,7 @@ local function createTorches()
     
     local torchesFolder = Instance.new("Folder")
     torchesFolder.Name = "Torches"
-    torchesFolder.Parent = Workspace.Dungeon
+    torchesFolder.Parent = Workspace
     
     for i, torchConfig in ipairs(DUNGEON_CONFIG.torches) do
         -- Torch pole (dark wood)
@@ -329,7 +401,7 @@ local function createTorches()
             "Torch" .. i .. "_Flame",
             Vector3.new(2, 3, 2),
             Vector3.new(torchConfig.position.X, torchConfig.position.Y, torchConfig.position.Z),
-            Color3.fromRGB(255, 150, 0),  -- Orange
+            Color3.fromRGB(255, 150, 0),
             false,
             0.2,
             Enum.Material.Neon
@@ -398,37 +470,35 @@ end
 
 -- ===== CREATE LIGHTING =====
 local function createLighting()
-    print("[DungeonLayout] Setting up cave lighting...")
+    print("[DungeonLayout] Setting up dynamic lighting...")
     
     local lighting = game:GetService("Lighting")
     
-    -- Dark ambient (cave atmosphere)
-    lighting.Ambient = Color3.fromRGB(100, 90, 80)
-    lighting.OutdoorAmbient = Color3.fromRGB(100, 90, 80)
-    lighting.Brightness = 0.5  -- Dark cave
+    -- Bright outdoor lighting for lobby
+    lighting.Ambient = Color3.fromRGB(200, 200, 200)
+    lighting.OutdoorAmbient = Color3.fromRGB(200, 200, 200)
+    lighting.Brightness = 1.5
     
-    -- Fog untuk cave effect
-    lighting.FogColor = Color3.fromRGB(60, 50, 40)
-    lighting.FogStart = 0
-    lighting.FogEnd = 500
+    -- Sky color
+    lighting.FogColor = Color3.fromRGB(135, 206, 235)  -- Sky blue
+    lighting.FogEnd = 2000
     
-    -- Remove default sun (cave has no sun)
+    -- Remove default sun
     for _, light in pairs(lighting:GetChildren()) do
         if light:IsA("Light") then
             light:Destroy()
         end
     end
     
-    print("[DungeonLayout] ✓ Cave lighting configured!")
+    print("[DungeonLayout] ✓ Outdoor lighting configured!")
 end
 
 -- ===== MAIN EXECUTION =====
 local function main()
     print("\n" .. string.rep("=", 60))
-    print("[DungeonLayout V2] Starting advanced dungeon generation...")
+    print("[DungeonLayout V3] Starting dungeon with GREEN LOBBY...")
     print(string.rep("=", 60) .. "\n")
     
-    -- Create all parts
     createLobby()
     createDungeon()
     createMonsterSpawnPoints()
@@ -437,19 +507,18 @@ local function main()
     createLighting()
     
     print("\n" .. string.rep("=", 60))
-    print("[DungeonLayout V2] ✓✓✓ DUNGEON FULLY CREATED! ✓✓✓")
+    print("[DungeonLayout V3] ✓ COMPLETE! GREEN LOBBY READY!")
     print(string.rep("=", 60) .. "\n")
     
     print("📊 DUNGEON OVERVIEW:")
-    print("  🏠 Lobby: 60x60 studs (bright & safe)")
+    print("  🏜️ Lobby: 100x100 studs (GREEN HILL with trees)")
+    print("  🚸 Teleport Pad: Cyan glow in center (TOUCH TO ENTER)")
     print("  🏔️ Cave Dungeon: 200x200 studs (dark & atmospheric)")
-    print("  🧟 Monster Spawn Points: 20 (distributed across chambers)")
-    print("  🔥 Torches: 10 (with realistic flame lighting)")
-    print("  👹 Boss Area: Separate chamber (red glowing door)")
-    print("  🌫️ Atmosphere: Dark fog, torch lighting, cave acoustics")
-    print("  ✓ All parts ANCHORED (no falling)")
+    print("  👹 Monster Spawn Points: 20 (distributed)")
+    print("  🔥 Torches: 10 (cave lighting)")
+    print("  🚪 Boss Area: Red glowing door")
+    print("  " .. string.char(226, 156, 132) .. " All parts ANCHORED (stable)")
     print("\n")
 end
 
--- Run on script start
 main()
